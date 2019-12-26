@@ -1,2 +1,2 @@
-# janet-hiredis
-Janet redis bindings based on hiredis
+# janet-redis
+A janet redis library built with the official hiredis C library.
