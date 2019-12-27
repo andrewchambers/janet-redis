@@ -7,5 +7,5 @@
 
 (declare-native
     :name "redis"
-    :cflags ["-lhiredis"]
+    :cflags ["-lhiredis" "-I/nix/store/6blfjdkah4r5mf0yrb2snq68hqmxwcf3-hiredis-0.14.0/include/hiredis"]
     :source ["mod.c"])

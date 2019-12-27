@@ -248,6 +248,21 @@ static Janet jredis_error_code(int32_t argc, Janet *argv) {
   }
 }
 
+static Janet jredis_set_timeout(int32_t argc, Janet *argv) {
+  janet_arity(argc, 2, 3);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &redis_context_type);
+  __ensure_ctx_ok(ctx);
+  struct timeval tv;
+
+  tv.tv_sec = janet_getinteger64(argv, 1);
+  tv.tv_usec = argc == 3 ? janet_getinteger64(argv, 2) : 0;
+
+  if (redisSetTimeout(ctx->ctx, tv) != REDIS_OK)
+    janet_panic("unable to set timeout");
+
+  return janet_wrap_abstract(ctx);
+}
+
 static const JanetReg cfuns[] = {
     {"connect", jredis_connect,
      "(redis/connect host & port)\n\n"
@@ -264,6 +279,9 @@ static const JanetReg cfuns[] = {
     {"append", jredis_append,
      "(redis/append ctx & params])\n\n"
      "Add a command to the pipline, raises an error on redis errors."},
+    {"set-timeout", jredis_set_timeout,
+     "(redis/set-timeout ctx seconds &opt useconds])\n\n"
+     "Set connection timeout."},
     {"get-reply", jredis_get_reply,
      "(redis/get-reply ctx & params])\n\n"
      "Get the result of a redis command, raises an error on redis errors."},
