@@ -12,7 +12,6 @@ static void context_close(Context *ctx) {
   }
 }
 
-/* Called to garbage collect a sqlite3 connection */
 static int context_gc(void *p, size_t s) {
   (void)s;
   Context *ctx = (Context *)p;

@@ -5,7 +5,18 @@
   :url "https://github.com/andrewchambers/janet-redis"
   :repo "git+https://github.com/andrewchambers/janet-redis.git")
 
+(defn pkg-config [what]
+  (def f (file/popen (string "pkg-config " what)))
+  (def v (->>
+           (file/read f :all)
+           (string/trim)
+           (string/split " ")))
+  (when (not= (file/close f) 0)
+    (error "pkg-config failed!"))
+  v)
+
 (declare-native
     :name "redis"
-    :cflags ["-lhiredis" "-I/nix/store/6blfjdkah4r5mf0yrb2snq68hqmxwcf3-hiredis-0.14.0/include/hiredis"]
+    :cflags (pkg-config "hiredis --cflags")
+    :lflags (pkg-config "hiredis --libs")
     :source ["mod.c"])
