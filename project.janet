@@ -11,7 +11,7 @@
            (file/read f :all)
            (string/trim)
            (string/split " ")))
-  (when (not= (file/close f) 0)
+  (unless (zero? (file/close f))
     (error "pkg-config failed!"))
   v)
 
