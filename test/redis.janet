@@ -85,10 +85,14 @@
 
   # test close.
   (do
-    (def conn (:connect tmp-redis-server))
-    (r/close conn)
-    (def [ok v] (protect (r/command conn "PING")))
-    (assert (false? ok)))
+    (def conn1 (:connect tmp-redis-server))
+    (def conn2 (:connect tmp-redis-server))
+    (r/close conn1)
+    (:close conn2)
+    (def [ok1 v] (protect (r/command conn1 "PING")))
+    (def [ok2 v] (protect (r/command conn2 "PING")))
+    (assert (false? ok1))
+    (assert (false? ok2)))
 
   # test gc
   (do

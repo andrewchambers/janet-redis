@@ -19,4 +19,4 @@
     :name "redis"
     :cflags (array/push (pkg-config "hiredis --cflags") "-g")
     :lflags (pkg-config "hiredis --libs")
-    :source ["mod.c"])
+    :source ["redis.c"])

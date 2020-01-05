@@ -19,8 +19,19 @@ static int context_gc(void *p, size_t s) {
   return 0;
 }
 
+static Janet jredis_close(int32_t argc, Janet *argv);
+
+static JanetMethod context_methods[] = {
+    {"close", jredis_close}, /* So contexts can be used with 'with' */
+    {NULL, NULL}};
+
+static int context_get(void *ptr, Janet key, Janet *out) {
+  Context *p = (Context *)ptr;
+  return janet_getmethod(janet_unwrap_keyword(key), context_methods, out);
+}
+
 static const JanetAbstractType redis_context_type = {
-    "redis.context", context_gc, NULL, NULL, NULL, NULL, NULL, NULL};
+    "redis.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL};
 
 static Janet jredis_connect(int32_t argc, Janet *argv) {
   janet_arity(argc, 1, 2);
