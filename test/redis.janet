@@ -94,6 +94,15 @@
     (assert (false? ok1))
     (assert (false? ok2)))
 
+  # test get timeout and reconnect
+  (do
+    (def c (:connect tmp-redis-server))
+    (assert (= [0 0] (r/get-timeout c)))
+    (r/set-timeout c 10 0)
+    (assert (= [10 0] (r/get-timeout c)))
+    (r/reconnect c)
+    (assert (= [0 0] (r/get-timeout c))))
+
   # test gc
   (do
     (var conn (:connect tmp-redis-server))

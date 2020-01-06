@@ -1,5 +1,6 @@
 #include <hiredis.h>
 #include <janet.h>
+#include <sys/socket.h>
 
 typedef struct {
   redisContext *ctx;
@@ -30,8 +31,16 @@ static int context_get(void *ptr, Janet key, Janet *out) {
   return janet_getmethod(janet_unwrap_keyword(key), context_methods, out);
 }
 
-static const JanetAbstractType redis_context_type = {
-    "redis.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL, NULL, NULL};
+static const JanetAbstractType redis_context_type = {"redis.context",
+                                                     context_gc,
+                                                     NULL,
+                                                     context_get,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL,
+                                                     NULL};
 
 static Janet jredis_connect(int32_t argc, Janet *argv) {
   janet_arity(argc, 1, 2);
@@ -71,6 +80,19 @@ static Janet jredis_connect_unix(int32_t argc, Janet *argv) {
     janet_panicf("error connecting to redis server: %s", ctx->ctx->errstr);
 
   return janet_wrap_abstract(ctx);
+}
+
+static Janet jredis_reconnect(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 1);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &redis_context_type);
+
+  if (!ctx->ctx)
+    janet_panic("this connection was closed, unable to reconnect");
+
+  if (redisReconnect(ctx->ctx) != REDIS_OK)
+    janet_panicf("error reconnecting to redis server: %s", ctx->ctx->errstr);
+
+  return janet_wrap_nil();
 }
 
 static Janet jredis_close(int32_t argc, Janet *argv) {
@@ -273,6 +295,28 @@ static Janet jredis_set_timeout(int32_t argc, Janet *argv) {
   return janet_wrap_abstract(ctx);
 }
 
+static Janet jredis_get_timeout(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 1);
+  Context *ctx = (Context *)janet_getabstract(argv, 0, &redis_context_type);
+  __ensure_ctx_ok(ctx);
+
+  struct timeval tv;
+  socklen_t len = sizeof(tv);
+
+  /* N.B. at the time of writing, hiredis does not have a function to get this
+     value. This is basically a hack since it relies on us knowing the
+     implementation of set timeout, but our unit tests should cover it.
+   */
+
+  if (getsockopt(ctx->ctx->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &len) == -1)
+    janet_panic("unable to get previously set timeout on socket");
+
+  Janet *t = janet_tuple_begin(2);
+  t[0] = janet_wrap_number(tv.tv_sec);
+  t[1] = janet_wrap_number(tv.tv_usec);
+  return janet_wrap_tuple(janet_tuple_end(t));
+}
+
 static const JanetReg cfuns[] = {
     {"connect", jredis_connect,
      "(redis/connect host & port)\n\n"
@@ -280,6 +324,9 @@ static const JanetReg cfuns[] = {
     {"connect-unix", jredis_connect_unix,
      "(redis/connect-unix socket-path)\n\n"
      "Connect to a redis server or raise an error."},
+    {"reconnect", jredis_reconnect,
+     "(redis/reconnect ctx)\n\n"
+     "Reconnect a redis context."},
     {"close", jredis_close,
      "(redis/close ctx)\n\n"
      "Close a redis context."},
@@ -292,6 +339,9 @@ static const JanetReg cfuns[] = {
     {"set-timeout", jredis_set_timeout,
      "(redis/set-timeout ctx seconds &opt useconds])\n\n"
      "Set connection timeout."},
+    {"get-timeout", jredis_get_timeout,
+     "(redis/get-timeout ctx])\n\n"
+     "Get connection timeout that can be passed back to set-timeout."},
     {"get-reply", jredis_get_reply,
      "(redis/get-reply ctx & params])\n\n"
      "Get the result of a redis command, raises an error on redis errors."},
