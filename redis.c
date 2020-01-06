@@ -31,7 +31,7 @@ static int context_get(void *ptr, Janet key, Janet *out) {
 }
 
 static const JanetAbstractType redis_context_type = {
-    "redis.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL};
+    "redis.context", context_gc, NULL, context_get, NULL, NULL, NULL, NULL, NULL, NULL};
 
 static Janet jredis_connect(int32_t argc, Janet *argv) {
   janet_arity(argc, 1, 2);
