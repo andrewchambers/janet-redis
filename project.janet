@@ -17,6 +17,6 @@
 
 (declare-native
     :name "redis"
-    :cflags (array/push (pkg-config "hiredis --cflags") "-g")
+    :cflags (pkg-config "hiredis --cflags")
     :lflags (pkg-config "hiredis --libs")
     :source ["redis.c"])
