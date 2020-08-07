@@ -16,10 +16,10 @@
   v)
 
 (declare-source
-    :source ["redis.janet"])
+  :source ["redis.janet"])
 
 (declare-native
-    :name "_janet-redis"
-    :cflags (pkg-config "hiredis --cflags")
-    :lflags (pkg-config "hiredis --libs")
-    :source ["redis.c"])
+  :name "_janet-redis"
+  :cflags (pkg-config "hiredis --cflags")
+  :lflags (pkg-config "hiredis --libs")
+  :source ["redis.c"])
