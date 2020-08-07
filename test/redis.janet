@@ -1,42 +1,39 @@
 (import sh)
-(import process)
-(import build/redis :as r)
-
-(defn assert [t] (when (not t) (error "assertion failed")))
+(import shlex)
+(import posix-spawn)
+(import ../redis :as r)
 
 (defn tmp-redis
   []
   (def port 35543)
-  (def d (string (sh/$$_ ["mktemp" "-d" "/tmp/janet-redis-test.tmp.XXXXX"])))
-  (def sock (string d "/redis.sock"))
-  (def r (process/spawn 
-           ["redis-server"
-            # We can't use unix sockets because the SIGPIPE aborts our tests.
-            "--port" (string port)]
-           :redirects [[stderr :discard] [stdout :discard]]
-           :start-dir d))
+
+  (def d (sh/$<_ mktemp -d /tmp/janet-redis-test.tmp.XXXXX))
+
+  (def r (posix-spawn/spawn ["sh" "-c"
+                             (string
+                               "cd " (shlex/quote d) " ;"
+                               "exec redis-server --port " port " > /dev/null 2>&1")]))
   (os/sleep 0.5)
-  @{
-   :port port
-   :d d
-   :r r
-   :sock sock
-   :connect
-     (fn [self]
-       (r/connect "localhost" (self :port)))
-   :close
-     (fn [self]
-       (print "closing down server...")
-       (:close (self :r))
-       (sh/$ ["rm" "-rf" (self :d)]))})
+
+  @{:port port
+    :d d
+    :r r
+    :connect
+    (fn [self]
+      (r/connect "localhost" (self :port)))
+    :close
+    (fn [self]
+      (print "closing down server...")
+      (:close (self :r))
+      (sh/$ rm -rf (self :d)))})
 
 (with [tmp-redis-server (tmp-redis)]
-  
-  (print "test redis at " (tmp-redis-server :sock))
+
   (var conn (:connect tmp-redis-server))
 
   # Simple commands.
   (assert (= (r/command conn "PING") "PONG"))
+  
   # Simple pipeline
   (assert (= (r/append conn "PING") nil))
   (assert (= (r/get-reply conn) "PONG"))
@@ -71,13 +68,19 @@
   (loop [i :range [0 64]]
     (assert (= (r/get-reply conn) (string "V" i))))
 
+  # Test multi.
+  (assert
+    (=
+      (tuple ;(r/multi conn ["PING"] ["PING"]))
+      ["PONG" "PONG"]))
+
   # Test errors
   (do
     (def [ok v] (protect (r/command conn "FOOCOMMAND")))
     (assert (false? ok)))
 
   # Test server disconnect error
-  (do 
+  (do
     (def conn (:connect tmp-redis-server))
     (r/command conn "QUIT")
     (protect (r/command conn "PING"))
@@ -107,5 +110,4 @@
   (do
     (var conn (:connect tmp-redis-server))
     (set conn nil)
-    (gccollect))
-)
+    (gccollect)))

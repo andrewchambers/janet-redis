@@ -15,8 +15,11 @@
     (error "pkg-config failed!"))
   v)
 
+(declare-source
+    :source ["redis.janet"])
+
 (declare-native
-    :name "redis"
+    :name "_janet-redis"
     :cflags (pkg-config "hiredis --cflags")
     :lflags (pkg-config "hiredis --libs")
     :source ["redis.c"])
