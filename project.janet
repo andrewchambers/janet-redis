@@ -19,7 +19,7 @@
   :source ["redis.janet"])
 
 (declare-native
-  :name "_janet-redis"
+  :name "_janet_redis"
   :cflags (pkg-config "hiredis --cflags")
   :lflags (pkg-config "hiredis --libs")
   :source ["redis.c"])
