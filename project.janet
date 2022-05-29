@@ -1,5 +1,6 @@
 (declare-project
   :name "redis"
+  :description "A Janet Redis library built with the official hiredis C library."
   :author "Andrew Chambers"
   :license "MIT"
   :url "https://github.com/andrewchambers/janet-redis"
